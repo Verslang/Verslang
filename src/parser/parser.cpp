@@ -263,7 +263,7 @@ std::shared_ptr<ASTNode> Parser::parseFuncDecl(bool isExport, bool isExtern, boo
     }
 
     // Return type
-    if (match(TokenType::ARROW)) {
+    if (match(TokenType::ARROW) || match(TokenType::COLON)) {
         node->typeAnnotation = parseType();
     } else {
         node->typeAnnotation = TypeInfo::makeVoid();
@@ -533,10 +533,48 @@ std::shared_ptr<ASTNode> Parser::parseAssemblyBlock() {
     auto node = ASTNode::make(NodeType::ASSEMBLY_BLOCK);
     expect(TokenType::LBRACE, "Expected '{'");
 
-    // Parse assembly instructions as raw text
-    // Each instruction is: mnemonic [operand [, operand [, operand]]]
+    // Parse assembly instructions as raw text or string literals
+    // Format 1: mnemonic [operand [, operand [, operand]]]
+    // Format 2: "full instruction as string"
     while (!check(TokenType::RBRACE) && !isAtEnd()) {
         AsmInstr instr;
+
+        // String literal form: "mov rax, 9"
+        if (check(TokenType::STRING_LITERAL)) {
+            std::string raw = current().value;
+            advance();
+            // Parse string into mnemonic + operands
+            size_t sp = raw.find(' ');
+            if (sp != std::string::npos) {
+                instr.mnemonic = raw.substr(0, sp);
+                std::string rest = raw.substr(sp + 1);
+                // Split on comma
+                size_t comma = rest.find(',');
+                if (comma != std::string::npos) {
+                    instr.operand1 = rest.substr(0, comma);
+                    // Trim leading space on second operand
+                    std::string op2 = rest.substr(comma + 1);
+                    while (!op2.empty() && op2[0] == ' ') op2.erase(0, 1);
+                    size_t comma2 = op2.find(',');
+                    if (comma2 != std::string::npos) {
+                        instr.operand2 = op2.substr(0, comma2);
+                        std::string op3 = op2.substr(comma2 + 1);
+                        while (!op3.empty() && op3[0] == ' ') op3.erase(0, 1);
+                        instr.operand3 = op3;
+                    } else {
+                        instr.operand2 = op2;
+                    }
+                } else {
+                    instr.operand1 = rest;
+                }
+            } else {
+                instr.mnemonic = raw;
+            }
+            node->asmInstructions.push_back(instr);
+            match(TokenType::SEMICOLON);
+            continue;
+        }
+
         instr.mnemonic = expect(TokenType::IDENTIFIER, "Expected assembly mnemonic").value;
 
         // Parse operands (simplified: just collect tokens until semicolon/newline/})
@@ -736,7 +774,13 @@ std::vector<FieldDef> Parser::parseFieldList() {
     std::vector<FieldDef> fields;
     while (!check(TokenType::RBRACE) && !isAtEnd()) {
         FieldDef f;
-        f.name = expect(TokenType::IDENTIFIER, "Expected field name").value;
+        // Allow keywords as field names (e.g., 'section')
+        if (check(TokenType::IDENTIFIER) || current().value.size() > 0) {
+            f.name = current().value;
+            advance();
+        } else {
+            f.name = expect(TokenType::IDENTIFIER, "Expected field name").value;
+        }
         expect(TokenType::COLON, "Expected ':' after field name");
         f.type = parseType();
 
@@ -926,7 +970,9 @@ std::shared_ptr<ASTNode> Parser::parsePostfix() {
             // Check for special member: memory.xxx, port.xxx, register.xxx
             auto node = ASTNode::make(NodeType::MEMBER_EXPR);
             node->object = expr;
-            node->name = expect(TokenType::IDENTIFIER, "Expected member name").value;
+            // Allow keywords as member names (e.g., obj.section)
+            node->name = current().value;
+            advance();
 
             // Check if it's a method call: obj.method(args)
             if (check(TokenType::LPAREN)) {

@@ -149,6 +149,10 @@ void Lexer::skipWhitespace() {
                 }
                 advance();
             }
+        } else if (c == '\xC2' && peek() == '\xA7') {
+            // § (section sign) single-line comment
+            advance(); advance();
+            while (!isAtEnd() && current() != '\n') advance();
         } else {
             break;
         }
@@ -268,7 +272,7 @@ Token Lexer::scanNumber() {
                 advance();
             }
             Token tok(TokenType::HEX_LITERAL, value, filename_, startLine, startCol);
-            tok.intValue = std::stoll(value, nullptr, 16);
+            tok.intValue = static_cast<int64_t>(std::stoull(value, nullptr, 16));
             return tok;
         }
         if (next == 'b' || next == 'B') {
@@ -279,7 +283,7 @@ Token Lexer::scanNumber() {
                 advance();
             }
             Token tok(TokenType::BINARY_LITERAL, value, filename_, startLine, startCol);
-            tok.intValue = std::stoll(value.substr(2), nullptr, 2);
+            tok.intValue = static_cast<int64_t>(std::stoull(value.substr(2), nullptr, 2));
             return tok;
         }
         if (next == 'o' || next == 'O') {
@@ -289,7 +293,7 @@ Token Lexer::scanNumber() {
                 value += current(); advance();
             }
             Token tok(TokenType::OCTAL_LITERAL, value, filename_, startLine, startCol);
-            tok.intValue = std::stoll(value.substr(2), nullptr, 8);
+            tok.intValue = static_cast<int64_t>(std::stoull(value.substr(2), nullptr, 8));
             return tok;
         }
     }
@@ -324,7 +328,7 @@ Token Lexer::scanNumber() {
     if (type == TokenType::FLOAT_LITERAL) {
         tok.floatValue = std::stod(value);
     } else {
-        tok.intValue = std::stoll(value);
+        tok.intValue = static_cast<int64_t>(std::stoull(value));
     }
     return tok;
 }
