@@ -1,0 +1,45 @@
+// ═══════════════════════════════════════════════════════════════
+// bootloader.vlang — 512-byte x86-64 Boot Sector
+// ═══════════════════════════════════════════════════════════════
+// Compile: verslang bootloader.vlang --format boot -o boot.img
+// Test:    qemu-system-x86_64 -fda boot.img
+//
+// This creates a minimal boot sector that prints a character
+// using BIOS interrupts and halts.
+
+directive bootloader
+
+function _start() -> void {
+    // Clear interrupts during setup
+    assembly {
+        cli
+
+        // Set up segment registers
+        xor ax, ax
+        mov ds, ax
+        mov es, ax
+        mov ss, ax
+        mov sp, 0x7C00
+
+        // Enable interrupts
+        sti
+
+        // Print 'V' using BIOS INT 10h (teletype output)
+        mov ah, 0x0E
+        mov al, 0x56
+        mov bh, 0x00
+        int 0x10
+
+        // Print 'L' 
+        mov al, 0x4C
+        int 0x10
+
+        // Print '!'
+        mov al, 0x21
+        int 0x10
+
+        // Halt
+        cli
+        hlt
+    }
+}

@@ -1,0 +1,8 @@
+external function ExitProcess(code: u32) -> void
+external function GetSystemMetrics(nIndex: i32) -> i32
+
+function main() -> i32 {
+    declare w: i32 = GetSystemMetrics(0)
+    ExitProcess(cast<u32>(w))
+    return 0
+}

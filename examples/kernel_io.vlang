@@ -1,0 +1,80 @@
+// ═══════════════════════════════════════════════════════════════
+// kernel_io.vlang — Low-level port I/O and interrupt demonstration
+// ═══════════════════════════════════════════════════════════════
+// Compile: verslang kernel_io.vlang --format bin -o kernel_io.bin
+//
+// Demonstrates: port I/O, interrupt handling, register access,
+//               assembly blocks, volatile memory, halt
+//
+// This is a kernel-mode fragment showing how Verslang handles
+// hardware-level programming constructs.
+
+// VGA text mode base address
+constant VGA_BUFFER: u64 = 0xB8000
+
+// Serial port (COM1)
+constant COM1_PORT: u16 = 0x3F8
+
+// Initialize serial port
+function init_serial() -> void {
+    port.output_byte(COM1_PORT + 1, 0x00)   // Disable interrupts
+    port.output_byte(COM1_PORT + 3, 0x80)   // Enable DLAB
+    port.output_byte(COM1_PORT + 0, 0x03)   // Set divisor (38400 baud)
+    port.output_byte(COM1_PORT + 1, 0x00)   // Hi byte
+    port.output_byte(COM1_PORT + 3, 0x03)   // 8 bits, no parity, 1 stop
+    port.output_byte(COM1_PORT + 2, 0xC7)   // Enable FIFO
+    port.output_byte(COM1_PORT + 4, 0x0B)   // IRQs enabled, RTS/DSR set
+}
+
+// Check if serial transmit buffer is empty
+function serial_ready() -> bool {
+    declare status: u8 = port.input_byte(COM1_PORT + 5)
+    return (status & 0x20) != 0
+}
+
+// Send a byte over serial
+function serial_write(ch: u8) -> void {
+    while (!serial_ready()) {
+        assembly { nop }
+    }
+    port.output_byte(COM1_PORT, ch)
+}
+
+// Write a character to VGA text buffer
+function vga_putchar(ch: u8, x: u32, y: u32, attr: u8) -> void {
+    declare offset: u64 = cast<u64>((y * 80 + x) * 2)
+    declare addr: u64 = VGA_BUFFER + offset
+    memory.write_u8(cast<ptr<u8>>(addr), 0, ch)
+    memory.write_u8(cast<ptr<u8>>(addr), 1, attr)
+}
+
+// Disable interrupts and halt
+function panic() -> void {
+    assembly {
+        cli
+        hlt
+    }
+}
+
+// Keyboard interrupt handler skeleton
+interrupt_handler keyboard_handler() {
+    declare scancode: u8 = port.input_byte(0x60)
+
+    // Acknowledge interrupt to PIC
+    port.output_byte(0x20, 0x20)
+}
+
+function _start() -> void {
+    // Initialize serial port
+    init_serial()
+
+    // Write "VL" to VGA buffer
+    vga_putchar(0x56, 0, 0, 0x0F)  // 'V' white on black
+    vga_putchar(0x4C, 1, 0, 0x0A)  // 'L' green on black
+
+    // Send 'V' over serial
+    serial_write(0x56)
+
+    // Halt
+    assembly { cli; hlt }
+}

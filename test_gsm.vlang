@@ -1,0 +1,11 @@
+external function GetStdHandle(nStdHandle: i32) -> ptr<void>
+external function WriteConsoleA(hConsole: ptr<void>, lpBuffer: ptr<u8>, nChars: u32, lpWritten: ptr<u32>, lpReserved: ptr<void>) -> i32
+external function GetSystemMetrics(nIndex: i32) -> i32
+
+function main() -> i32 {
+    declare h: ptr<void> = GetStdHandle(-11)
+    WriteConsoleA(h, "BEFORE GSM\n", 11, cast<ptr<u32>>(0), cast<ptr<void>>(0))
+    declare w: i32 = GetSystemMetrics(0)
+    WriteConsoleA(h, "AFTER GSM\n", 10, cast<ptr<u32>>(0), cast<ptr<void>>(0))
+    return 0
+}

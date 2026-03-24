@@ -1,0 +1,14 @@
+// ═══════════════════════════════════════════════════════════════
+// hello.vlang — Verslang Hello World (Linux ELF)
+// ═══════════════════════════════════════════════════════════════
+// Compile: verslang hello.vlang --format elf -o hello
+// Run:     ./hello
+
+function _start() -> void {
+    // sys_write(stdout, message, length)
+    declare msg: ptr<u8> = "Hello, Verslang!\n"
+    syscall(1, 1, msg, 17)
+
+    // sys_exit(0)
+    syscall(60, 0)
+}

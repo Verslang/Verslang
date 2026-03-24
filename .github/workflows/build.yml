@@ -1,0 +1,167 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build
+        run: |
+          New-Item -ItemType Directory -Force -Path build | Out-Null
+          cl /std:c++20 /EHsc /O2 /I "src" /D_USE_MATH_DEFINES /DNOMINMAX /DVERSLANG_WINDOWS `
+            src/main.cpp `
+            src/lexer/lexer.cpp `
+            src/parser/parser.cpp `
+            src/codegen/x86_64.cpp `
+            src/compiler/compiler.cpp `
+            /Fe:"build/verslang.exe" /Fo:"build/"
+
+      - name: Test - Compile hello_win.vlang
+        run: |
+          build\verslang.exe examples\hello_win.vlang -o build\hello_win.exe
+          if ($LASTEXITCODE -ne 0) { throw "Compilation failed" }
+          Write-Host "Compiled hello_win.vlang successfully"
+
+      - name: Test - Compile fibonacci.vlang
+        run: |
+          build\verslang.exe examples\fibonacci.vlang -o build\fibonacci.exe
+          if ($LASTEXITCODE -ne 0) { throw "Compilation failed" }
+          Write-Host "Compiled fibonacci.vlang successfully"
+
+      - name: Package
+        run: |
+          New-Item -ItemType Directory -Force -Path verslang-windows-x64 | Out-Null
+          Copy-Item build/verslang.exe verslang-windows-x64/
+          if (Test-Path examples) {
+            Copy-Item -Recurse examples verslang-windows-x64/examples
+          }
+          if (Test-Path stdlib) {
+            Copy-Item -Recurse stdlib verslang-windows-x64/stdlib
+          }
+          Copy-Item README.md verslang-windows-x64/ -ErrorAction SilentlyContinue
+          Compress-Archive -Path verslang-windows-x64 -DestinationPath verslang-windows-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verslang-windows-x64
+          path: verslang-windows-x64.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake
+
+      - name: Build
+        run: |
+          mkdir -p build-release && cd build-release
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20
+          make -j$(nproc)
+
+      - name: Test - Compile hello.vlang
+        run: |
+          build-release/verslang examples/hello.vlang -o build-release/hello
+          echo "Compiled hello.vlang successfully"
+
+      - name: Package
+        run: |
+          mkdir -p verslang-linux-x64/bin
+          cp build-release/verslang verslang-linux-x64/bin/
+          chmod +x verslang-linux-x64/bin/verslang
+          cp -r examples verslang-linux-x64/examples 2>/dev/null || true
+          cp -r stdlib verslang-linux-x64/stdlib 2>/dev/null || true
+          cp README.md verslang-linux-x64/ 2>/dev/null || true
+          tar -czf verslang-linux-x64.tar.gz verslang-linux-x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verslang-linux-x64
+          path: verslang-linux-x64.tar.gz
+
+  build-macos-intel:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          mkdir -p build-release && cd build-release
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_OSX_ARCHITECTURES=x86_64
+          make -j$(sysctl -n hw.ncpu)
+
+      - name: Package
+        run: |
+          mkdir -p verslang-macos-x64/bin
+          cp build-release/verslang verslang-macos-x64/bin/
+          chmod +x verslang-macos-x64/bin/verslang
+          cp -r examples verslang-macos-x64/examples 2>/dev/null || true
+          cp -r stdlib verslang-macos-x64/stdlib 2>/dev/null || true
+          cp README.md verslang-macos-x64/ 2>/dev/null || true
+          tar -czf verslang-macos-x64.tar.gz verslang-macos-x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verslang-macos-x64
+          path: verslang-macos-x64.tar.gz
+
+  build-macos-arm:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          mkdir -p build-release && cd build-release
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20
+          make -j$(sysctl -n hw.ncpu)
+
+      - name: Package
+        run: |
+          mkdir -p verslang-macos-arm64/bin
+          cp build-release/verslang verslang-macos-arm64/bin/
+          chmod +x verslang-macos-arm64/bin/verslang
+          cp -r examples verslang-macos-arm64/examples 2>/dev/null || true
+          cp -r stdlib verslang-macos-arm64/stdlib 2>/dev/null || true
+          cp README.md verslang-macos-arm64/ 2>/dev/null || true
+          tar -czf verslang-macos-arm64.tar.gz verslang-macos-arm64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verslang-macos-arm64
+          path: verslang-macos-arm64.tar.gz
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-windows, build-linux, build-macos-intel, build-macos-arm]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            verslang-windows-x64/verslang-windows-x64.zip
+            verslang-linux-x64/verslang-linux-x64.tar.gz
+            verslang-macos-x64/verslang-macos-x64.tar.gz
+            verslang-macos-arm64/verslang-macos-arm64.tar.gz
+          generate_release_notes: true

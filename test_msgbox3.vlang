@@ -1,0 +1,8 @@
+external function MessageBoxA(hwnd: u64, text: ptr<u8>, title: ptr<u8>, flags: u32) -> i32
+external function ExitProcess(code: u32) -> void
+
+function main() -> i32 {
+    declare ret: i32 = MessageBoxA(0, "Works?", "Test", 0)
+    ExitProcess(cast<u32>(ret))
+    return 0
+}

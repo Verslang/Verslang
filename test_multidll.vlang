@@ -1,0 +1,8 @@
+external function GetStdHandle(nStdHandle: i32) -> ptr<void>
+external function MessageBoxA(hwnd: u64, text: ptr<u8>, title: ptr<u8>, flags: u32) -> i32
+
+function main() -> i32 {
+    declare h: ptr<void> = GetStdHandle(-11)
+    MessageBoxA(0, "Multi DLL works!", "Test", 0)
+    return 0
+}

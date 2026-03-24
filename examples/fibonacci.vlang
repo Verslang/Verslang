@@ -1,0 +1,68 @@
+// ═══════════════════════════════════════════════════════════════
+// fibonacci.vlang — Fibonacci with Verslang type system
+// ═══════════════════════════════════════════════════════════════
+// Compile: verslang fibonacci.vlang --format elf -o fibonacci
+//          verslang fibonacci.vlang --format pe -o fibonacci.exe
+//
+// Demonstrates: functions, loops, variables, arithmetic,
+//               conditionals, type annotations
+
+// Calculate the Nth Fibonacci number iteratively
+function fibonacci(n: u64) -> u64 {
+    if (n == 0) { return 0 }
+    if (n == 1) { return 1 }
+
+    declare a: u64 = 0
+    declare b: u64 = 1
+    declare i: u64 = 2
+
+    while (i <= n) {
+        declare temp: u64 = a + b
+        a = b
+        b = temp
+        i = i + 1
+    }
+
+    return b
+}
+
+// Calculate factorial
+function factorial(n: u64) -> u64 {
+    if (n <= 1) { return 1 }
+    declare result: u64 = 1
+    declare i: u64 = 2
+    while (i <= n) {
+        result = result * i
+        i = i + 1
+    }
+    return result
+}
+
+// Check if a number is prime
+function is_prime(n: u64) -> bool {
+    if (n < 2) { return false }
+    if (n == 2) { return true }
+    if (n % 2 == 0) { return false }
+
+    declare i: u64 = 3
+    while (i * i <= n) {
+        if (n % i == 0) { return false }
+        i = i + 2
+    }
+    return true
+}
+
+// Entry point
+function _start() -> void {
+    // Compute fibonacci(10) = 55
+    declare fib10: u64 = fibonacci(10)
+
+    // Compute factorial(5) = 120
+    declare fact5: u64 = factorial(5)
+
+    // Check if 17 is prime = true
+    declare prime17: bool = is_prime(17)
+
+    // Exit with fibonacci(10) as exit code (55)
+    syscall(60, fib10)
+}

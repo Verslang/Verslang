@@ -1,0 +1,13 @@
+{
+  "name": "verslang",
+  "version": "1.0.0",
+  "description": "Verslang - Low-level systems programming language that compiles to native machine code",
+  "author": "Verslang",
+  "license": "MIT",
+  "keywords": ["compiler", "systems-programming", "low-level", "x86-64", "machine-code", "kernel", "bootloader"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Verslang/Verslang"
+  },
+  "files": [".vlang", ".verslang", ".lang", ".language", ".kerlang"]
+}

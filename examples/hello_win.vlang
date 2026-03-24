@@ -1,0 +1,17 @@
+// ═══════════════════════════════════════════════════════════════
+// hello_win.vlang — Verslang Hello World (Windows PE)
+// ═══════════════════════════════════════════════════════════════
+// Compile: verslang hello_win.vlang --format pe -o hello.exe
+// Run:     hello.exe
+
+external function GetStdHandle(nStdHandle: i32) -> ptr<void>
+external function WriteConsoleA(hConsole: ptr<void>, lpBuffer: ptr<u8>, nChars: u32, lpWritten: ptr<u32>, lpReserved: ptr<void>) -> i32
+external function ExitProcess(uExitCode: u32) -> void
+
+function main() -> i32 {
+    declare msg: ptr<u8> = "Hello, Verslang!\n"
+    declare stdout: ptr<void> = GetStdHandle(-11)
+    declare written: u32 = 0
+    WriteConsoleA(stdout, msg, 17, address_of(written), cast<ptr<void>>(0))
+    return 0
+}

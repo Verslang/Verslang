@@ -1,0 +1,41 @@
+# Build output
+build/
+cmake-build/
+build-release/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE
+.vs/
+.vscode/
+*.sln
+*.vcxproj*
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Test artifacts
+test_*.exe
+test_*.o
+gui-installer.exe
+
+# Python debug scripts
+*.py
+*.pyc
+
+# MSVC temp files
+*.ilk
+*.pdb
+*.idb
+*.exp
+*.lib
+
+# OS
+Thumbs.db
+.DS_Store

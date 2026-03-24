@@ -1,0 +1,5 @@
+external function ExitProcess(code: u32) -> void
+function main() -> i32 {
+    ExitProcess(42)
+    return 0
+}

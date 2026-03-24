@@ -1,0 +1,6 @@
+external function MessageBoxA(hwnd: u64, text: ptr<u8>, title: ptr<u8>, flags: u32) -> i32
+
+function main() -> i32 {
+    MessageBoxA(0, "Hello from Verslang!", "Verslang Test", 0)
+    return 0
+}

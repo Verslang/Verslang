@@ -1,0 +1,83 @@
+// ═══════════════════════════════════════════════════════════════
+// structures.vlang — Structures, enums, pointers, memory
+// ═══════════════════════════════════════════════════════════════
+// Compile: verslang structures.vlang --format pe -o structures.exe
+//
+// Demonstrates: structures, enumerations, pointer arithmetic,
+//               memory operations, casting, sizeof, address_of
+
+// A 2D point structure
+structure Point {
+    x: i64
+    y: i64
+}
+
+// Color enumeration
+enumeration Color {
+    RED = 0
+    GREEN = 1
+    BLUE = 2
+    ALPHA = 3
+}
+
+// A simple linked list node
+structure ListNode {
+    value: i64
+    next: ptr<ListNode>
+}
+
+// Compute distance squared between two points (no FP needed)
+function distance_squared(ax: i64, ay: i64, bx: i64, by: i64) -> i64 {
+    declare dx: i64 = bx - ax
+    declare dy: i64 = by - ay
+    return dx * dx + dy * dy
+}
+
+// Sum values in a fixed-size array
+function array_sum(arr: ptr<i64>, count: u64) -> i64 {
+    declare sum: i64 = 0
+    declare i: u64 = 0
+    while (i < count) {
+        declare val: i64 = memory.read_u64(cast<ptr<u8>>(arr), i * 8)
+        sum = sum + val
+        i = i + 1
+    }
+    return sum
+}
+
+// Bit manipulation: count set bits (popcount)
+function popcount(n: u64) -> u64 {
+    declare count: u64 = 0
+    declare val: u64 = n
+    while (val != 0) {
+        count = count + (val & 1)
+        val = val >> 1
+    }
+    return count
+}
+
+// Byte swap (endianness conversion for 32-bit)
+function bswap32(val: u32) -> u32 {
+    declare b0: u32 = (val >> 24) & 0xFF
+    declare b1: u32 = (val >> 16) & 0xFF
+    declare b2: u32 = (val >> 8) & 0xFF
+    declare b3: u32 = val & 0xFF
+    return (b3 << 24) | (b2 << 16) | (b1 << 8) | b0
+}
+
+function _start() -> void {
+    // Test sizeof
+    declare point_size: u64 = sizeof(Point)
+
+    // Test distance
+    declare dist: i64 = distance_squared(0, 0, 3, 4)
+
+    // Test popcount(0xFF) = 8
+    declare bits: u64 = popcount(255)
+
+    // Test bswap
+    declare swapped: u32 = bswap32(0x12345678)
+
+    // Exit with distance as code (25 = 3*3 + 4*4)
+    syscall(60, dist)
+}
